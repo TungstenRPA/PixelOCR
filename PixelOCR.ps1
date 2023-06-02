@@ -34,8 +34,8 @@ Function Get-NextRow([System.Drawing.Bitmap]$bitmap, [int32]$startY) {
     for ($y=$startY; $y -lt $bitmap.Height ; $y++ ) {
         $pcount = 0
         for ($x=0; $x -lt $bitmap.Width; $x++ ) {
-            $col = $bitmap.GetPixel($x,$y)
-            if ($col.R -eq 255) { $pcount++}
+            $Pixel = $bitmap.GetPixel($x,$y)
+            if ($Pixel.Name -eq "ffffffff") { $pcount++}   #counting white pixels!
         }
         if  ($pcount -lt $bitmap.Width) {return $startY}  # this horizontal line contains pixels - it is not blank
         $startY++ # this was a blank horizontal line. look in next
@@ -59,7 +59,7 @@ Function Get-OCR([string]$ImageFileName, [string]$FontFileName, [string]$Charact
                 for ($y=0; $y -lt $font.Height; $y++ ) {
                     $Pixel = $image.GetPixel($imageX+$x, $imageY+ $y)
                     $FontPixel=$font.Getpixel($x+$fontX,$y)
-                    if ($Pixel.R -ne $FontPixel.R) {
+                    if ($Pixel.Name -ne $FontPixel.Name) {
                         $match = $false
                         break matchpixels # pixel mismatch, stop matching this character
                     }
