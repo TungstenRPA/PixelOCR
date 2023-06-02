@@ -41,48 +41,46 @@ Function Get-NextRow([System.Drawing.Bitmap]$bitmap, [int32]$startY) {
     }
     return -1 # the rest of the image was blank
 }
-Function Get-OCR([string]$ImageFileName, [string]$FontFileName, [string]$Characters) {
+Function Get-OCR([string]$ImageFileName, [string]$FontFileName, [string]$Characters, [string]$CharWidths) {
     $font = New-Object System.Drawing.Bitmap $FontFileName 
     $image = New-Object System.Drawing.Bitmap $ImageFileName 
-    $fontX=0
-    $fontIndex =0
-    $fontBestIndex =0
-    $fontBestScore=0
     $imageY=(Get-NextRow $image 0) # skip white space above text
     $imageX=(Get-NextColumn $image $imageX $imageY $font.Height $true) # skip white space left of the text
     $OCR=""
-    # loop through each character in the font
-    while (($fontX -ne -1) -and ($fontX -lt $font.width)) { 
-        $fontNextX = (Get-NextColumn $font ($fontX+1) 0 $font.Height $false)+1
-        if ($fontnextX -eq -1) { $fontnextX = $font.width+1}
-        $charWidth = $fontnextX-$fontX -1 # the width in pixels of next font character
-        $pcount = 0
-        for ($x=0; $x -lt $charwidth; $x++ ) {
-            for ($y=0; $y -lt $font.Height; $y++ ) {
-                $Pixel = $image.GetPixel($imageX+$x, $imageY+ $y)
-                $FontPixel=$font.Getpixel($x+$fontX,$y)
-                if ($Pixel.R -eq $FontPixel.R) {$pcount++}
+    while(($imageX -ne -1) -and ($imageX -lt $image.Width)){ # loop through each character in image
+        $fontX=0
+        $fontIndex =0
+        $CharWidth=0 # we need to define this here, so we can increment on the image after a match
+        :matchchars foreach ($CharWidthSt in $CharWidths.Split()){ # loop through font finding a match
+            $CharWidth=[int]$CharWidthSt
+            $match = $true
+            :matchpixels for ($x=0; $x -lt $Charwidth; $x++ ) { # loop through pixels until mismatch found
+                for ($y=0; $y -lt $font.Height; $y++ ) {
+                    $Pixel = $image.GetPixel($imageX+$x, $imageY+ $y)
+                    $FontPixel=$font.Getpixel($x+$fontX,$y)
+                    if ($Pixel.R -ne $FontPixel.R) {
+                        $match = $false
+                        break matchpixels # pixel mismatch, stop matching this character
+                    }
+                }
             }
+            if ($match) {break matchchars} # successful match on all pixels
+            $fontx+=$charwidth+1 # try next character
+            $fontIndex++
         }
-        $pcount = $pcount/($charwidth * $font.height)  # we need to normalize the matching score to 0..1
-        $ch=$Characters.substring($fontIndex,1)
-        Write-Host "$ch : $pcount"
-        if ($pcount -gt $fontBestScore) {
-            $fontBestScore= $pcount
-            $fontBestIndex = $fontindex
+        if (-not $match) {
+            Throw "Failed to perform OCR. Unknown character found at ($imageX,$imageY)."
         }
-        $fontx=$fontNextX
-        $fontIndex++
-        if ($fontx -ge $font.Width) {break} # we reached the end of the font
+        $OCR=$OCR+$Characters.substring($fontIndex,1)
+        # Write-Host "$OCR" # log OCR 
+        $imageX=(Get-NextColumn $image ($imageX+$CharWidth) $imageY $font.Height $true) # skip white space left of the text
     }
-    $OCRChar=$Characters.substring($fontBestIndex,1)
-    $OCR+=$OCRChar
     $font.Dispose()
     $image.Dispose()
     return $OCR
 }
 Write-Host "PixelOCR"
 $truth="11764379-40892883/1176"
-$z = (Get-OCR ".\image.png" ".\font.png" "0123456789-/")
+$z = (Get-OCR ".\image.png" ".\font.png" "0123456789-/" "5 3 5 5 5 5 5 5 5 5 2 4")
 Write-Host "OCR = $z"
-if ($truth -eq $z) {Write-Host "success"}
+if ($truth -eq $z) {Write-Host "success"} else {Throw "OCR failed on $truth"}
