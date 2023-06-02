@@ -9,10 +9,11 @@ Add-Type -AssemblyName System.Drawing
 # - Left-to-Right alphabet.
 # - single line of text. other text lines are ignored
 
-# 3 inputs
+# 4 inputs
 # - image: bitmap to OCR
 # - font: bitmap of font - no whitespace above, below or left of characters. 1 column of Whitespace between characters and after last character
 # - characters: the characters of the font in order
+# - character widths:  These could be calculated but it would slow down the algorithm.
 Function Get-NextColumn([System.Drawing.Bitmap]$bitmap, [int32]$startX, [int32]$startY, [int32]$fontHeight, $black) {
     #Find either the Nextcolumn containing >1 Black Pixel, or the next column containing only white pixels.
     # We need both options because we don't know character width.
